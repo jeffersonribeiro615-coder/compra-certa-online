@@ -1,0 +1,31 @@
+name: Extrair projeto Compra Certa
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extrair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Extrair projeto
+        run: |
+          unzip -o compra_certa_online.zip -d .
+          if [ -d compra_certa_online ]; then
+            cp -a compra_certa_online/. .
+            rm -rf compra_certa_online
+          fi
+          rm -f compra_certa_online.zip
+
+      - name: Salvar arquivos no GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Extrair projeto Compra Certa Online" || exit 0
+          git push
