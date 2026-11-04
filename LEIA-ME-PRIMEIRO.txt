@@ -1,0 +1,40 @@
+COMPRA CERTA ONLINE — GUIA SIMPLES
+
+IMPORTANTE
+Este ZIP contém o código do site. Ele ainda NÃO está publicado e NÃO está conectado à sua conta. Não envie senhas ou chaves secretas pelo WhatsApp ou pelo chat.
+
+O QUE VOCÊ JÁ TEM
+- Projeto Supabase criado.
+- Project URL guardado nas suas notas.
+- Publishable key guardada nas suas notas.
+
+O QUE ESTE PROJETO FAZ
+- Vitrine adaptada para celular.
+- Busca e categorias.
+- Painel com login.
+- Cadastro manual de produtos e links de afiliado.
+- Cadastro por comando inteligente (exige chave da API OpenAI).
+- Banco de dados com regras para somente o administrador autorizado alterar produtos.
+
+PRÓXIMOS PASSOS (FAREMOS UM DE CADA VEZ)
+1. O projeto precisa ser colocado em um serviço de hospedagem como Vercel. Não tente instalar tudo pelo celular agora.
+2. Criar uma conta na Vercel e importar este projeto ZIP (se a importação ZIP não estiver disponível, será necessário usar GitHub; posso orientar).
+3. Na hospedagem, configurar:
+   NEXT_PUBLIC_SUPABASE_URL = Project URL salvo nas suas notas
+   NEXT_PUBLIC_SUPABASE_ANON_KEY = Publishable key salva nas suas notas
+   OPENAI_API_KEY = opcional; necessária somente para o comando inteligente.
+4. No Supabase, abrir SQL Editor, colar e executar o conteúdo de supabase/schema.sql.
+5. Em Authentication > Users, criar seu usuário administrador. Desative o cadastro público (Authentication > Sign In / Providers ou configurações de Auth; a tela pode variar).
+6. Copiar o UUID do usuário criado e executar no SQL Editor:
+   insert into public.admin_users (user_id) values ('SEU-UUID-AQUI');
+7. Testar o site e o painel. Comprar domínio é opcional e pode ficar para depois.
+
+SEGURANÇA
+- Nunca coloque Secret key / service_role no navegador ou no código público.
+- Não envie senha do Supabase, senha de banco, Secret key ou OPENAI_API_KEY no chat.
+- A Publishable key foi feita para uso no navegador, mas depende das políticas RLS do banco, incluídas no schema.sql.
+- Não habilite cadastro público sem necessidade; a administração deve ficar com uma única conta.
+- A API OpenAI é opcional. Sem ela, o cadastro manual continua disponível.
+
+OBSERVAÇÃO TÉCNICA
+O projeto foi preparado como base de desenvolvimento. Antes de uso comercial, é importante concluir a configuração, publicar, testar login, regras de acesso, links de afiliados, política de privacidade e avisos legais. O domínio pode ser escolhido depois.
