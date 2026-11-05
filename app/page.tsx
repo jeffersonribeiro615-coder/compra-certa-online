@@ -217,7 +217,7 @@ export default function Home() {
       return;
     }
 
-    if (!/^https?:\\/\\//i.test(url)) {
+    if (!/^https?:\/\//i.test(url)) {
       setMessage("Cole um link válido da Shopee ou do Mercado Livre.");
       return;
     }
