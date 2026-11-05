@@ -134,7 +134,7 @@ export async function POST(request: Request) {
     // Quando encontramos o código MLB, consultamos a API oficial do item.
     let apiItem: any = null;
     if (host === "meli.la" || /mercadolivre|mercadolibre/.test(host)) {
-      const itemId = finalUrl.match(/(MLB-?\\d+)/i)?.[1]?.replace("-", "").toUpperCase();
+      const itemId = finalUrl.match(/(MLB-?\d+)/i)?.[1]?.replace("-", "").toUpperCase();
       if (itemId) {
         try {
           const itemResponse = await fetch(
