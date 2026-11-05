@@ -12,21 +12,34 @@ type MercadoLivreItem = {
 
 function collectProducts(value: any, output: any[] = []) {
   if (!value || typeof value !== "object") return output;
+
   if (Array.isArray(value)) {
     for (const entry of value) collectProducts(entry, output);
     return output;
   }
 
   const type = value["@type"];
-  const isProduct = type === "Product" ||
+  const isProduct =
+    type === "Product" ||
     (Array.isArray(type) && type.includes("Product"));
 
   if (isProduct) {
     const offer = Array.isArray(value.offers) ? value.offers[0] : value.offers;
+    const specification = offer?.priceSpecification;
     const rawImage = Array.isArray(value.image) ? value.image[0] : value.image;
-    const image = typeof rawImage === "string" ? rawImage : rawImage?.url;
-    const price = Number(offer?.price || offer?.lowPrice || 0);
+    const image =
+      typeof rawImage === "string"
+        ? rawImage
+        : rawImage?.url || rawImage?.contentUrl || "";
+    const rawPrice =
+      offer?.price ??
+      offer?.lowPrice ??
+      specification?.price ??
+      value.price ??
+      0;
+    const price = Number(String(rawPrice).replace(",", "."));
     const url = value.url || offer?.url || "";
+
     if (value.name && price > 0 && url) {
       output.push({
         id: String(value.sku || value.productID || url),
@@ -34,17 +47,57 @@ function collectProducts(value: any, output: any[] = []) {
         price,
         category: "Outros",
         image_url: String(image || "").replace(/^http:/, "https:"),
-        product_url: String(url).startsWith("http") ? String(url) : `https://www.mercadolivre.com.br${url}`,
+        product_url: String(url).startsWith("http")
+          ? String(url)
+          : `https://www.mercadolivre.com.br${url}`,
         affiliate_url: "",
         description: "",
       });
     }
   }
 
+  // Percorre também ItemList, elementos "item" e grafos JSON-LD.
   for (const [key, child] of Object.entries(value)) {
     if (key !== "offers" && key !== "image") collectProducts(child, output);
   }
   return output;
+}
+
+function extractHtmlCards(html: string) {
+  const results: any[] = [];
+  const cards = html.split(/(?=<li[^>]+class=["'][^"']*(?:poly-card|ui-search-result)[^"']*["'])/i);
+
+  for (const card of cards) {
+    const link =
+      card.match(/<a[^>]+href=["'](https?:\\/\\/[^"'?#]+|\\/[^"']+)["'][^>]*>/i)?.[1] || "";
+    const title =
+      card.match(/<(?:h2|h3)[^>]*class=["'][^"']*(?:poly-component__title|ui-search-item__title)[^"']*["'][^>]*>([\\s\\S]*?)<\\/(?:h2|h3)>/i)?.[1] ||
+      card.match(/aria-label=["']([^"']{8,})["']/i)?.[1] || "";
+    const priceText =
+      card.match(/class=["'][^"']*(?:andes-money-amount__fraction|poly-price__current)[^"']*["'][^>]*>([\\s\\S]*?)<\\//i)?.[1] || "";
+    const image =
+      card.match(/<img[^>]+(?:data-src|src)=["']([^"']+)["']/i)?.[1] || "";
+    const price = Number(priceText.replace(/[^0-9]/g, ""));
+
+    const cleanTitle = title.replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").trim();
+    if (cleanTitle.length > 5 && price > 0 && link) {
+      const productUrl = link.startsWith("http")
+        ? link
+        : `https://www.mercadolivre.com.br${link}`;
+      results.push({
+        id: productUrl,
+        title: cleanTitle,
+        price: price / 100,
+        category: "Outros",
+        image_url: image.replace(/^http:/, "https:"),
+        product_url: productUrl,
+        affiliate_url: "",
+        description: "",
+      });
+    }
+  }
+
+  return results;
 }
 
 async function searchWebsite(query: string) {
@@ -70,6 +123,10 @@ async function searchWebsite(query: string) {
       // Ignora dados estruturados inválidos e tenta os demais blocos.
     }
   }
+  // Algumas versões da página não incluem Product no JSON-LD;
+  // tenta também ler os cartões HTML apresentados ao visitante.
+  if (!found.length) found.push(...extractHtmlCards(html));
+
   const unique = new Map<string, any>();
   for (const item of found) {
     if (!unique.has(item.id)) unique.set(item.id, item);
