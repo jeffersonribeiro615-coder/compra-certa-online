@@ -210,19 +210,31 @@ export default function Home() {
   }
 
   async function interpretCommand() {
-    setMessage("Interpretando comando...");
+    const url = command.trim();
+
+    if (!url) {
+      setMessage("Cole o link da Shopee ou do Mercado Livre.");
+      return;
+    }
+
+    if (!/^https?:\\/\\//i.test(url)) {
+      setMessage("Cole um link válido da Shopee ou do Mercado Livre.");
+      return;
+    }
+
+    setMessage("Consultando o produto...");
 
     try {
-      const response = await fetch("/api/interpretar", {
+      const response = await fetch("/api/importar-produto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command }),
+        body: JSON.stringify({ url }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(data.error || "Não foi possível interpretar o comando.");
+        setMessage(data.error || "Não foi possível importar o produto.");
         return;
       }
 
@@ -233,13 +245,17 @@ export default function Home() {
         price: String(product.price ?? ""),
         category: product.category || "Outros",
         image_url: product.image_url || "",
-        affiliate_url: product.affiliate_url || "",
+        affiliate_url: product.affiliate_url || url,
         description: product.description || "",
       });
 
-      setMessage("Confira os campos e toque em Cadastrar produto.");
+      setMessage(
+        data.warning
+          ? data.warning + " Confira os dados antes de cadastrar."
+          : "Produto identificado! Confira os campos e toque em Cadastrar produto."
+      );
     } catch {
-      setMessage("Erro ao interpretar o comando.");
+      setMessage("Erro ao consultar o produto. Tente novamente.");
     }
   }
 
@@ -534,14 +550,14 @@ export default function Home() {
                   <textarea
                     value={command}
                     onChange={(e) => setCommand(e.target.value)}
-                    placeholder="Ex.: Adicione cafeteira por R$ 159,90. Link: https://..."
+                    placeholder="Cole aqui o link de um produto da Shopee ou do Mercado Livre"
                   />
 
                   <button
                     className="secondary"
                     onClick={interpretCommand}
                   >
-                    Interpretar comando
+                    Importar produto pelo link
                   </button>
                 </div>
 
