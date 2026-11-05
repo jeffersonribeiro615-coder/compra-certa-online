@@ -60,11 +60,11 @@ async function searchWebsite(query: string) {
   });
   if (!response.ok) return [];
   const html = await response.text();
-  const scripts = html.match(/<script[^>]*type=["']application\\/ld\\+json["'][^>]*>[\\s\\S]*?<\\/script>/gi) || [];
+  const scripts = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi) || [];
   const found: any[] = [];
   for (const script of scripts) {
     try {
-      const json = script.replace(/^<script[^>]*>/i, "").replace(/<\\/script>$/i, "");
+      const json = script.replace(/^<script[^>]*>/i, "").replace(/<\/script>$/i, "");
       collectProducts(JSON.parse(json), found);
     } catch {
       // Ignora dados estruturados inválidos e tenta os demais blocos.
