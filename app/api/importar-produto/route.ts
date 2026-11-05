@@ -179,19 +179,20 @@ export async function POST(request: Request) {
       meta(html, "twitter:image") ||
       String(apiItem?.pictures?.[0]?.secure_url || apiItem?.thumbnail || "");
 
-    // O Mercado Livre pode omitir a imagem na página acessada pelo link curto.
-    // Nesse caso, buscamos uma miniatura pela API pública usando o título identificado.
-    if (!image && (
+    // Complementa dados ausentes consultando a busca pública do Mercado Livre.
+    // Isso também recupera o preço quando a página do link afiliado não o fornece.
+    let searchItem: any = null;
+    if (
       host === "meli.la" ||
       host === "mercadolivre.com.br" ||
       host.endsWith(".mercadolivre.com.br") ||
       host === "mercadolibre.com" ||
       host.endsWith(".mercadolibre.com")
-    )) {
+    ) {
       try {
         const searchUrl = new URL("https://api.mercadolibre.com/sites/MLB/search");
         searchUrl.searchParams.set("q", title);
-        searchUrl.searchParams.set("limit", "5");
+        searchUrl.searchParams.set("limit", "10");
 
         const searchResponse = await fetch(searchUrl, {
           headers: { Accept: "application/json" },
@@ -203,7 +204,7 @@ export async function POST(request: Request) {
           const searchData = await searchResponse.json();
           const results = Array.isArray(searchData.results) ? searchData.results : [];
           const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-          const bestMatch = results.find((item: any) => {
+          searchItem = results.find((item: any) => {
             const candidate = String(item.title || "")
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, " ")
@@ -213,12 +214,14 @@ export async function POST(request: Request) {
               candidate.includes(normalizedTitle) ||
               normalizedTitle.includes(candidate)
             );
-          }) || results[0];
+          }) || results[0] || null;
 
-          image = String(bestMatch?.thumbnail || "").replace(/^http:/, "https:");
+          if (!image) {
+            image = String(searchItem?.thumbnail || "").replace(/^http:/, "https:");
+          }
         }
       } catch {
-        // A importação continua mesmo se a busca auxiliar de imagem falhar.
+        // A importação continua mesmo se a busca auxiliar falhar.
       }
     }
 
@@ -237,6 +240,7 @@ export async function POST(request: Request) {
         (Array.isArray(product?.offers) ? product.offers[0]?.price : "") ||
         meta(html, "product:price:amount") ||
         apiItem?.price ||
+        searchItem?.price ||
         ""
       ).replace(",", ".")
     );
