@@ -127,7 +127,26 @@ export async function POST(request: Request) {
       );
     }
 
+    const finalUrl = response.url || affiliateUrl;
     const html = await response.text();
+
+    // Links curtos do Mercado Livre podem redirecionar para a página do anúncio.
+    // Quando encontramos o código MLB, consultamos a API oficial do item.
+    let apiItem: any = null;
+    if (host === "meli.la" || /mercadolivre|mercadolibre/.test(host)) {
+      const itemId = finalUrl.match(/(MLB-?\\d+)/i)?.[1]?.replace("-", "").toUpperCase();
+      if (itemId) {
+        try {
+          const itemResponse = await fetch(
+            `https://api.mercadolibre.com/items/${itemId}`,
+            { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8000), cache: "no-store" }
+          );
+          if (itemResponse.ok) apiItem = await itemResponse.json();
+        } catch {
+          // Continua com os metadados da página se a consulta do item falhar.
+        }
+      }
+    }
 
     let product: any = null;
 
@@ -148,15 +167,17 @@ export async function POST(request: Request) {
       }
     }
 
-    const title =
+    let title =
       clean(product?.name || "") ||
       meta(html, "og:title") ||
-      meta(html, "twitter:title");
+      meta(html, "twitter:title") ||
+      clean(apiItem?.title || "");
 
     let image =
       findImage(product?.image) ||
       meta(html, "og:image") ||
-      meta(html, "twitter:image");
+      meta(html, "twitter:image") ||
+      String(apiItem?.pictures?.[0]?.secure_url || apiItem?.thumbnail || "");
 
     // O Mercado Livre pode omitir a imagem na página acessada pelo link curto.
     // Nesse caso, buscamos uma miniatura pela API pública usando o título identificado.
@@ -214,11 +235,14 @@ export async function POST(request: Request) {
       String(
         product?.offers?.price ||
         (Array.isArray(product?.offers) ? product.offers[0]?.price : "") ||
-        meta(html, "product:price:amount")
+        meta(html, "product:price:amount") ||
+        apiItem?.price ||
+        ""
       ).replace(",", ".")
     );
 
     const currency =
+      apiItem?.currency_id ||
       product?.offers?.priceCurrency ||
       (Array.isArray(product?.offers) ? product.offers[0]?.priceCurrency : "") ||
       meta(html, "product:price:currency") ||
