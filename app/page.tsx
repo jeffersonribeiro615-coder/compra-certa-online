@@ -1,5 +1,4 @@
-
-"use client";
+ "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
@@ -20,7 +19,6 @@ const ADMIN_ID = "3d29a2cd-9685-4028-82b6-fbe423568f34";
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("Todas");
   const [adminOpen, setAdminOpen] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -76,21 +74,42 @@ export default function Home() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // Cria uma lista única de categorias, sem espaços extras.
   const categories = useMemo(
-    () => [
-      "Todas",
-      ...Array.from(new Set(products.map((p) => p.category || "Outros"))),
-    ],
+    () =>
+      Array.from(
+        new Set(products.map((p) => p.category?.trim() || "Outros"))
+      ).sort((a, b) => a.localeCompare(b, "pt-BR")),
     [products]
   );
 
-  const visible = products.filter(
-    (p) =>
-      (category === "Todas" || p.category === category) &&
-      `${p.title} ${p.category}`
-        .toLowerCase()
-        .includes(query.toLowerCase())
+  // A busca procura pelo nome e pela categoria.
+  const visible = products.filter((p) =>
+    `${p.title} ${p.category || "Outros"}`
+      .toLowerCase()
+      .includes(query.toLowerCase().trim())
   );
+
+  // Separa automaticamente os produtos por categoria.
+  const groupedProducts = categories
+    .map((name) => ({
+      name,
+      items: visible.filter(
+        (p) => (p.category?.trim() || "Outros") === name
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  function categoryId(value: string) {
+    return (
+      "categoria-" +
+      value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+    );
+  }
 
   async function login(e: FormEvent) {
     e.preventDefault();
@@ -275,63 +294,88 @@ export default function Home() {
         <div className="bag">🛍️</div>
       </section>
 
-      <section className="section">
+      <section className="section" id="catalogo">
         <h2>Explore por categoria</h2>
 
         <div className="chips">
+          <button
+            className="chip selected"
+            onClick={() =>
+              document.getElementById("catalogo")?.scrollIntoView({
+                behavior: "smooth",
+              })
+            }
+          >
+            Todas
+          </button>
+
           {categories.map((c) => (
             <button
               key={c}
-              className={category === c ? "chip selected" : "chip"}
-              onClick={() => setCategory(c)}
+              className="chip"
+              onClick={() =>
+                document.getElementById(categoryId(c))?.scrollIntoView({
+                  behavior: "smooth",
+                })
+              }
             >
               {c}
             </button>
           ))}
         </div>
 
-        <h2>Produtos em destaque</h2>
+        <h2>{query.trim() ? "Resultados da busca" : "Nossos produtos"}</h2>
 
-        <div className="grid">
-          {visible.map((p) => (
-            <article className="product" key={p.id}>
-              <div className="photo">
-                {p.image_url ? (
-                  <img src={p.image_url} alt={p.title} />
-                ) : (
-                  <span>🛍️</span>
-                )}
-              </div>
+        {groupedProducts.map((group) => (
+          <div
+            className="categorySection"
+            id={categoryId(group.name)}
+            key={group.name}
+          >
+            <h2>{group.name}</h2>
 
-              <div className="productInfo">
-                <small>{p.category}</small>
-                <h3>{p.title}</h3>
+            <div className="grid">
+              {group.items.map((p) => (
+                <article className="product" key={p.id}>
+                  <div className="photo">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.title} />
+                    ) : (
+                      <span>🛍️</span>
+                    )}
+                  </div>
 
-                <p className="price">
-                  {Number(p.price).toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
-                </p>
+                  <div className="productInfo">
+                    <small>{p.category || "Outros"}</small>
+                    <h3>{p.title}</h3>
 
-                <a
-                  className="buy"
-                  href={p.affiliate_url}
-                  target="_blank"
-                  rel="noreferrer sponsored"
-                >
-                  Ver oferta
-                </a>
-              </div>
-            </article>
-          ))}
+                    <p className="price">
+                      {Number(p.price).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
+                    </p>
 
-          {visible.length === 0 && (
-            <p className="empty">
-              Nenhum produto encontrado. Em breve teremos novidades!
-            </p>
-          )}
-        </div>
+                    <a
+                      className="buy"
+                      href={p.affiliate_url}
+                      target="_blank"
+                      rel="noreferrer sponsored"
+                    >
+                      Ver oferta
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {visible.length === 0 && (
+          <p className="empty">
+            Nenhum produto encontrado. Tente outra pesquisa!
+          </p>
+        )}
       </section>
 
       <footer>
@@ -446,11 +490,7 @@ export default function Home() {
                     />
                   </label>
 
-                  {imageFile && (
-                    <p>
-                      Foto selecionada: {imageFile.name}
-                    </p>
-                  )}
+                  {imageFile && <p>Foto selecionada: {imageFile.name}</p>}
 
                   <label>
                     Link da imagem (opcional, se não escolher uma foto)
