@@ -3,12 +3,34 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const clientId = process.env.MERCADOLIVRE_CLIENT_ID;
-  const redirectUri = process.env.MERCADOLIVRE_REDIRECT_URI;
+  const required = [
+    "MERCADOLIVRE_CLIENT_ID",
+    "MERCADOLIVRE_CLIENT_SECRET",
+    "MERCADOLIVRE_REDIRECT_URI",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  ];
+  const missing = required.filter((key) => !process.env[key]);
 
-  if (!clientId || !redirectUri) {
-    return NextResponse.redirect(new URL("/?mercadolivre= configurar", process.env.URL || "https://compra-certa-online.netlify.app"));
+  if (missing.length) {
+    return new NextResponse(
+      [
+        "A conexão do Mercado Livre ainda não está pronta.",
+        "",
+        "Faltam estas variáveis no Netlify:",
+        ...missing.map((key) => "- " + key),
+        "",
+        "Cadastre somente os nomes indicados. Nunca compartilhe os valores secretos.",
+      ].join("\n"),
+      {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      }
+    );
   }
+
+  const clientId = process.env.MERCADOLIVRE_CLIENT_ID!;
+  const redirectUri = process.env.MERCADOLIVRE_REDIRECT_URI!;
 
   const state = crypto.randomUUID();
   const authorizationUrl = new URL("https://auth.mercadolivre.com.br/authorization");
