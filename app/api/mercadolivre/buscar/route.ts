@@ -65,7 +65,7 @@ function collectProducts(value: any, output: any[] = []) {
 
 function extractHtmlCards(html: string) {
   const results: any[] = [];
-  const cards = html.split(/(?=<li[^>]+class=["'][^"']*(?:poly-card|ui-search-result)[^"']*["'])/i);
+  const cards = html.split(/(?=<(?:li|div)[^>]+class=["'][^"']*(?:ui-search-layout__item|poly-card|ui-search-result)[^"']*["'])/i);
 
   for (const card of cards) {
     const link =
