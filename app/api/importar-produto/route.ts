@@ -177,7 +177,22 @@ export async function POST(request: Request) {
       findImage(product?.image) ||
       meta(html, "og:image") ||
       meta(html, "twitter:image") ||
-      String(apiItem?.pictures?.[0]?.secure_url || apiItem?.thumbnail || "");
+      String(apiItem?.pictures?.[0]?.secure_url || apiItem?.pictures?.[0]?.url || apiItem?.thumbnail || "");
+
+    // Descarta endereços de imagem incompletos ou malformados.
+    function validImageUrl(value: string) {
+      try {
+        const parsed = new URL(value);
+        return (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+          /\.(jpg|jpeg|png|webp)(\?|$)/i.test(parsed.pathname + parsed.search) ||
+          (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+          /mlstatic\.com/i.test(parsed.hostname);
+      } catch {
+        return false;
+      }
+    }
+
+    if (!validImageUrl(image)) image = "";
 
     // Complementa dados ausentes consultando a busca pública do Mercado Livre.
     // Isso também recupera o preço quando a página do link afiliado não o fornece.
@@ -204,20 +219,28 @@ export async function POST(request: Request) {
           const searchData = await searchResponse.json();
           const results = Array.isArray(searchData.results) ? searchData.results : [];
           const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-          searchItem = results.find((item: any) => {
+          const titleWords = normalizedTitle.split(" ").filter((word: string) => word.length > 2);
+          const ranked = results.map((item: any) => {
             const candidate = String(item.title || "")
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, " ")
               .trim();
-            return candidate && (
-              candidate === normalizedTitle ||
-              candidate.includes(normalizedTitle) ||
-              normalizedTitle.includes(candidate)
-            );
-          }) || results[0] || null;
+            const candidateWords = new Set(candidate.split(" "));
+            const overlap = titleWords.filter((word: string) => candidateWords.has(word)).length;
+            return { item, score: titleWords.length ? overlap / titleWords.length : 0 };
+          }).sort((a: any, b: any) => b.score - a.score);
+
+          searchItem = ranked[0]?.score >= 0.35
+            ? ranked[0].item
+            : results[0] || null;
 
           if (!image) {
-            image = String(searchItem?.thumbnail || "").replace(/^http:/, "https:");
+            image = String(
+              searchItem?.thumbnail ||
+              searchItem?.pictures?.[0]?.secure_url ||
+              searchItem?.pictures?.[0]?.url ||
+              ""
+            ).replace(/^http:/, "https:");
           }
         }
       } catch {
@@ -228,6 +251,7 @@ export async function POST(request: Request) {
     if (image && image.startsWith("//")) {
       image = `https:${image}`;
     }
+    if (!validImageUrl(image)) image = "";
 
     const description =
       clean(product?.description || "") ||
