@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -26,6 +27,7 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -115,11 +117,48 @@ export default function Home() {
     e.preventDefault();
     setMessage("Salvando produto...");
 
+    if (!session || !isAdmin) {
+      setMessage("Você precisa estar conectado como administrador.");
+      return;
+    }
+
+    let imageUrl = form.image_url || null;
+
+    if (imageFile) {
+      if (!imageFile.type.startsWith("image/")) {
+        setMessage("Selecione um arquivo de imagem válido.");
+        return;
+      }
+
+      const extension = imageFile.name.split(".").pop() || "jpg";
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("produtos")
+        .upload(fileName, imageFile, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setMessage("Erro ao enviar imagem: " + uploadError.message);
+        return;
+      }
+
+      const { data: publicData } = supabase.storage
+        .from("produtos")
+        .getPublicUrl(fileName);
+
+      imageUrl = publicData.publicUrl;
+    }
+
     const { error } = await supabase.from("products").insert({
       title: form.title,
       price: Number(form.price),
       category: form.category,
-      image_url: form.image_url || null,
+      image_url: imageUrl,
       affiliate_url: form.affiliate_url,
       description: form.description || null,
       is_active: true,
@@ -128,7 +167,8 @@ export default function Home() {
     if (error) {
       setMessage("Erro ao salvar: " + error.message);
     } else {
-      setMessage("Produto cadastrado!");
+      setMessage("Produto cadastrado com sucesso!");
+
       setForm({
         title: "",
         price: "",
@@ -137,6 +177,15 @@ export default function Home() {
         affiliate_url: "",
         description: "",
       });
+
+      setImageFile(null);
+
+      const fileInput = document.getElementById(
+        "product-image"
+      ) as HTMLInputElement | null;
+
+      if (fileInput) fileInput.value = "";
+
       loadProducts();
     }
   }
@@ -183,7 +232,10 @@ export default function Home() {
       .delete()
       .eq("id", id);
 
-    setMessage(error ? "Erro ao excluir: " + error.message : "Produto excluído.");
+    setMessage(
+      error ? "Erro ao excluir: " + error.message : "Produto excluído."
+    );
+
     loadProducts();
   }
 
@@ -383,7 +435,25 @@ export default function Home() {
                   </label>
 
                   <label>
-                    Link da imagem (opcional)
+                    Escolher foto da galeria do celular
+                    <input
+                      id="product-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setImageFile(e.target.files?.[0] || null)
+                      }
+                    />
+                  </label>
+
+                  {imageFile && (
+                    <p>
+                      Foto selecionada: {imageFile.name}
+                    </p>
+                  )}
+
+                  <label>
+                    Link da imagem (opcional, se não escolher uma foto)
                     <input
                       type="url"
                       value={form.image_url}
@@ -461,4 +531,4 @@ export default function Home() {
       )}
     </main>
   );
-                 }
+}
