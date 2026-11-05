@@ -153,10 +153,57 @@ export async function POST(request: Request) {
       meta(html, "og:title") ||
       meta(html, "twitter:title");
 
-    const image =
+    let image =
       findImage(product?.image) ||
       meta(html, "og:image") ||
       meta(html, "twitter:image");
+
+    // O Mercado Livre pode omitir a imagem na página acessada pelo link curto.
+    // Nesse caso, buscamos uma miniatura pela API pública usando o título identificado.
+    if (!image && (
+      host === "meli.la" ||
+      host === "mercadolivre.com.br" ||
+      host.endsWith(".mercadolivre.com.br") ||
+      host === "mercadolibre.com" ||
+      host.endsWith(".mercadolibre.com")
+    )) {
+      try {
+        const searchUrl = new URL("https://api.mercadolibre.com/sites/MLB/search");
+        searchUrl.searchParams.set("q", title);
+        searchUrl.searchParams.set("limit", "5");
+
+        const searchResponse = await fetch(searchUrl, {
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(8000),
+          cache: "no-store",
+        });
+
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          const results = Array.isArray(searchData.results) ? searchData.results : [];
+          const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+          const bestMatch = results.find((item: any) => {
+            const candidate = String(item.title || "")
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, " ")
+              .trim();
+            return candidate && (
+              candidate === normalizedTitle ||
+              candidate.includes(normalizedTitle) ||
+              normalizedTitle.includes(candidate)
+            );
+          }) || results[0];
+
+          image = String(bestMatch?.thumbnail || "").replace(/^http:/, "https:");
+        }
+      } catch {
+        // A importação continua mesmo se a busca auxiliar de imagem falhar.
+      }
+    }
+
+    if (image && image.startsWith("//")) {
+      image = `https:${image}`;
+    }
 
     const description =
       clean(product?.description || "") ||
