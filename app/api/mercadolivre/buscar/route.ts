@@ -69,12 +69,12 @@ function extractHtmlCards(html: string) {
 
   for (const card of cards) {
     const link =
-      card.match(/<a[^>]+href=["'](https?:\\/\\/[^"'?#]+|\\/[^"']+)["'][^>]*>/i)?.[1] || "";
+      card.match(/<a[^>]+href=["'](https?:\/\/[^"'?#]+|\/[^"']+)["'][^>]*>/i)?.[1] || "";
     const title =
-      card.match(/<(?:h2|h3)[^>]*class=["'][^"']*(?:poly-component__title|ui-search-item__title)[^"']*["'][^>]*>([\\s\\S]*?)<\\/(?:h2|h3)>/i)?.[1] ||
+      card.match(/<(?:h2|h3)[^>]*class=["'][^"']*(?:poly-component__title|ui-search-item__title)[^"']*["'][^>]*>([\s\S]*?)<\/(?:h2|h3)>/i)?.[1] ||
       card.match(/aria-label=["']([^"']{8,})["']/i)?.[1] || "";
     const priceText =
-      card.match(/class=["'][^"']*(?:andes-money-amount__fraction|poly-price__current)[^"']*["'][^>]*>([\\s\\S]*?)<\\//i)?.[1] || "";
+      card.match(/class=["'][^"']*(?:andes-money-amount__fraction|poly-price__current)[^"']*["'][^>]*>([\s\S]*?)<\//i)?.[1] || "";
     const image =
       card.match(/<img[^>]+(?:data-src|src)=["']([^"']+)["']/i)?.[1] || "";
     const price = Number(priceText.replace(/[^0-9]/g, ""));
