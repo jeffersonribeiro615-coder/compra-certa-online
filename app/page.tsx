@@ -572,8 +572,12 @@ export default function Home() {
                     />
                   </label>
 
+                  <p>
+                    Importante: use aqui o link gerado no Portal de Afiliados do Mercado Livre. O link comum do produto não registra comissão.
+                  </p>
+
                   <label>
-                    Link de afiliado
+                    Link de afiliado gerado no Mercado Livre
                     <input
                       type="url"
                       value={form.affiliate_url}
