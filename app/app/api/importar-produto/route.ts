@@ -1,0 +1,212 @@
+
+import { NextResponse } from "next/server";
+
+function clean(value: string) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/<[^>]*>/g, "")
+    .trim();
+}
+
+function meta(html: string, key: string) {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns = [
+    new RegExp(`<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']*)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["']${escaped}["']`, "i"),
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) return clean(match[1]);
+  }
+
+  return "";
+}
+
+function findProduct(value: any): any {
+  if (!value || typeof value !== "object") return null;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findProduct(item);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  const type = value["@type"];
+  if (
+    type === "Product" ||
+    (Array.isArray(type) && type.includes("Product"))
+  ) {
+    return value;
+  }
+
+  if (value["@graph"]) return findProduct(value["@graph"]);
+
+  return null;
+}
+
+function categoryFrom(title: string) {
+  const name = title.toLowerCase();
+
+  if (/furadeira|parafusadeira|ferramenta|serra/.test(name)) return "Ferramentas";
+  if (/fone|celular|câmera|camera|smartwatch|eletrônico/.test(name)) return "Eletrônicos";
+  if (/cozinha|panela|cafeteira|liquidificador/.test(name)) return "Casa e Cozinha";
+  if (/roupa|camisa|calça|vestido|tênis|sapato/.test(name)) return "Moda";
+  if (/brinquedo|boneca|carrinho/.test(name)) return "Brinquedos";
+
+  return "Outros";
+}
+
+function findImage(value: any): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return findImage(value[0]);
+  if (value && typeof value === "object") {
+    return value.url || value.contentUrl || "";
+  }
+  return "";
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const affiliateUrl = String(body.url || "").trim();
+
+    let parsedUrl: URL;
+
+    try {
+      parsedUrl = new URL(affiliateUrl);
+    } catch {
+      return NextResponse.json(
+        { error: "Cole um link válido do produto." },
+        { status: 400 }
+      );
+    }
+
+    const host = parsedUrl.hostname.toLowerCase();
+
+    const allowed =
+      host === "shopee.com.br" ||
+      host.endsWith(".shopee.com.br") ||
+      host === "shopee.com" ||
+      host.endsWith(".shopee.com") ||
+      host === "mercadolivre.com.br" ||
+      host.endsWith(".mercadolivre.com.br") ||
+      host === "mercadolibre.com" ||
+      host.endsWith(".mercadolibre.com") ||
+      host === "meli.la";
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Por enquanto, aceitamos somente links da Shopee e Mercado Livre." },
+        { status: 400 }
+      );
+    }
+
+    const response = await fetch(affiliateUrl, {
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "pt-BR,pt;q=0.9",
+      },
+      signal: AbortSignal.timeout(15000),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: "A loja não permitiu acessar as informações. Tente novamente ou preencha os dados manualmente." },
+        { status: 422 }
+      );
+    }
+
+    const html = await response.text();
+
+    let product: any = null;
+
+    const scripts = html.match(
+      /<script[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi
+    ) || [];
+
+    for (const script of scripts) {
+      try {
+        const json = script
+          .replace(/^<script[^>]*>/i, "")
+          .replace(/<\/script>$/i, "");
+
+        product = findProduct(JSON.parse(json));
+        if (product) break;
+      } catch {
+        continue;
+      }
+    }
+
+    const title =
+      clean(product?.name || "") ||
+      meta(html, "og:title") ||
+      meta(html, "twitter:title");
+
+    const image =
+      findImage(product?.image) ||
+      meta(html, "og:image") ||
+      meta(html, "twitter:image");
+
+    const description =
+      clean(product?.description || "") ||
+      meta(html, "og:description") ||
+      meta(html, "description");
+
+    let price = Number(
+      String(
+        product?.offers?.price ||
+        (Array.isArray(product?.offers) ? product.offers[0]?.price : "") ||
+        meta(html, "product:price:amount")
+      ).replace(",", ".")
+    );
+
+    const currency =
+      product?.offers?.priceCurrency ||
+      (Array.isArray(product?.offers) ? product.offers[0]?.priceCurrency : "") ||
+      meta(html, "product:price:currency") ||
+      "BRL";
+
+    if (currency !== "BRL" || !Number.isFinite(price) || price <= 0) {
+      price = 0;
+    }
+
+    if (!title || title.length < 3) {
+      return NextResponse.json(
+        { error: "Não conseguimos identificar o nome deste produto. A loja pode bloquear a leitura automática." },
+        { status: 422 }
+      );
+    }
+
+    return NextResponse.json({
+      product: {
+        title,
+        price: price || "",
+        category: categoryFrom(title),
+        image_url: image,
+        affiliate_url: affiliateUrl,
+        description,
+      },
+      warning: price
+        ? ""
+        : "Não foi possível identificar o preço. Confira o valor na loja antes de cadastrar.",
+    });
+  } catch (error) {
+    console.error("Erro ao importar produto:", error);
+
+    return NextResponse.json(
+      { error: "Não foi possível consultar o produto. Tente novamente." },
+      { status: 500 }
+    );
+  }
+}
