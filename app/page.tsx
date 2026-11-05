@@ -37,6 +37,9 @@ export default function Home() {
   });
 
   const [command, setCommand] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
 
   async function loadProducts() {
     const { data, error } = await supabase
@@ -257,6 +260,56 @@ export default function Home() {
     } catch {
       setMessage("Erro ao consultar o produto. Tente novamente.");
     }
+  }
+
+  async function searchMercadoLivre() {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setMessage("Digite o nome do produto que deseja encontrar.");
+      return;
+    }
+
+    setSearching(true);
+    setSearchResults([]);
+    setMessage("Buscando produtos no Mercado Livre...");
+
+    try {
+      const response = await fetch("/api/mercadolivre/buscar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.error || "Não foi possível buscar produtos.");
+        return;
+      }
+
+      setSearchResults(data.products || []);
+      setMessage(
+        data.products?.length
+          ? data.products.length + " produtos encontrados. Escolha um para preencher o cadastro."
+          : "Nenhum produto encontrado. Tente outro termo."
+      );
+    } catch {
+      setMessage("Erro ao pesquisar no Mercado Livre. Tente novamente.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function selectMercadoLivreProduct(product: any) {
+    setForm({
+      title: product.title || "",
+      price: String(product.price ?? ""),
+      category: product.category || "Outros",
+      image_url: product.image_url || "",
+      affiliate_url: "",
+      description: "",
+    });
+    setSearchResults([]);
+    setMessage("Produto carregado! Agora cole seu link de afiliado do Mercado Livre antes de cadastrar.");
   }
 
   async function removeProduct(id: number) {
@@ -543,6 +596,47 @@ export default function Home() {
 
                   <button className="primary">Cadastrar produto</button>
                 </form>
+
+                <div className="form">
+                  <h3>Robô de busca do Mercado Livre</h3>
+                  <p>Pesquise produtos no catálogo público e escolha um para preencher o cadastro automaticamente.</p>
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Ex.: fone bluetooth, liquidificador, tênis"
+                  />
+                  <button
+                    className="secondary"
+                    type="button"
+                    onClick={searchMercadoLivre}
+                    disabled={searching}
+                  >
+                    {searching ? "Buscando..." : "Buscar produtos"}
+                  </button>
+
+                  {searchResults.map((product) => (
+                    <div className="adminItem" key={product.id}>
+                      <div>
+                        {product.image_url && (
+                          <img
+                            src={product.image_url}
+                            alt={product.title}
+                            style={{ width: 64, height: 64, objectFit: "contain", display: "block" }}
+                          />
+                        )}
+                        <b>{product.title}</b>
+                        <p>R$ {Number(product.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <button
+                        className="primary"
+                        type="button"
+                        onClick={() => selectMercadoLivreProduct(product)}
+                      >
+                        Usar produto
+                      </button>
+                    </div>
+                  ))}
+                </div>
 
                 <div className="form">
                   <h3>Cadastro por comando inteligente</h3>
