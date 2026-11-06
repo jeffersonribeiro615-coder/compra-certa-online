@@ -365,7 +365,7 @@ export default function Home() {
           <button onClick={() => {}}>Buscar</button>
         </div>
 
-        {(isAdmin || adminMode) && (
+        {adminMode && (
           <button className="adminButton" onClick={() => setAdminOpen(true)}>
             ⚙ Painel
           </button>
