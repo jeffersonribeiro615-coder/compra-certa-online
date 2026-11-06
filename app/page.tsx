@@ -72,7 +72,7 @@ export default function Home() {
   useEffect(() => {
     loadProducts();
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
       await checkAdmin(data.session);
     });
@@ -326,7 +326,7 @@ export default function Home() {
     setMessage("Produto carregado! Agora cole seu link de afiliado do Mercado Livre antes de cadastrar.");
   }
 
-  async function removeProduct(id: number) {
+  async function removeProduct(id: string) {
     if (!confirm("Excluir este produto?")) return;
 
     const { error } = await supabase
