@@ -28,6 +28,18 @@ alter table public.products add column if not exists description text;
 alter table public.products add column if not exists is_active boolean not null default true;
 alter table public.products add column if not exists created_at timestamptz not null default now();
 
+
+-- Compatibilidade com instalações antigas que exigiam name e store.
+do $
+begin
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='products' and column_name='name') then
+    execute 'alter table public.products alter column name drop not null';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='products' and column_name='store') then
+    execute 'alter table public.products alter column store drop not null';
+  end if;
+end $;
+
 -- Se a versão antiga usava name/active, copia os dados para os campos atuais.
 do $$
 begin
