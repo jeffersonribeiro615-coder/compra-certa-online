@@ -101,11 +101,13 @@ export default function Home() {
   );
 
   // A busca procura pelo nome e pela categoria.
-  const visible = products.filter((p) =>
-    `${p.title} ${p.category || "Outros"}`
-      .toLowerCase()
-      .includes(query.toLowerCase().trim())
-  );
+  const visible = products
+    .filter((p) =>
+      `${p.title} ${p.category || "Outros"}`
+        .toLowerCase()
+        .includes(query.toLowerCase().trim())
+    )
+    .sort((a, b) => a.title.localeCompare(b.title, "pt-BR"));
 
   // Separa automaticamente os produtos por categoria.
   const groupedProducts = categories
