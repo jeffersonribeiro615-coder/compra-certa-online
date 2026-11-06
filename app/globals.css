@@ -626,3 +626,27 @@ footer small {
     padding: 9px;
   }
 }
+
+
+.installHelp {
+  max-width: 1160px;
+  margin: 14px auto 0;
+  padding: 14px 18px;
+  border: 1px solid #f2c28f;
+  border-radius: 12px;
+  background: #fff8ef;
+  color: #172033;
+  font-size: 14px;
+  line-height: 1.5;
+  position: relative;
+}
+.installHelp button {
+  float: right;
+  border: 0;
+  background: transparent;
+  font-weight: bold;
+  padding: 0 4px;
+}
+@media (max-width: 650px) {
+  .installHelp { margin: 12px; }
+}
