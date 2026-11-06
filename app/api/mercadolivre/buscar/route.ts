@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 type MercadoLivreItem = {
   id: string;
@@ -134,6 +135,28 @@ async function searchWebsite(query: string) {
   return Array.from(unique.values()).slice(0, 12);
 }
 
+async function getMercadoLivreAccessToken(): Promise<string | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const clientId = process.env.MERCADOLIVRE_CLIENT_ID;
+  const clientSecret = process.env.MERCADOLIVRE_CLIENT_SECRET;
+  if (!supabaseUrl || !serviceRoleKey || !clientId || !clientSecret) return null;
+  try {
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await supabase.from("mercadolivre_tokens").select("access_token, refresh_token, expires_at").eq("id", 1).single();
+    if (error || !data?.access_token || !data?.refresh_token) return null;
+    const expiresAt = new Date(data.expires_at).getTime();
+    if (Number.isFinite(expiresAt) && expiresAt > Date.now() + 60000) return data.access_token;
+    const body = new URLSearchParams({ grant_type: "refresh_token", client_id: clientId, client_secret: clientSecret, refresh_token: data.refresh_token });
+    const response = await fetch("https://api.mercadolibre.com/oauth/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body, cache: "no-store", signal: AbortSignal.timeout(10000) });
+    if (!response.ok) return null;
+    const token = await response.json();
+    if (!token.access_token || !token.refresh_token) return null;
+    const { error: updateError } = await supabase.from("mercadolivre_tokens").update({ access_token: token.access_token, refresh_token: token.refresh_token, token_type: token.token_type || "Bearer", expires_at: new Date(Date.now() + Number(token.expires_in || 0) * 1000).toISOString(), updated_at: new Date().toISOString() }).eq("id", 1);
+    if (updateError) return null;
+    return token.access_token;
+  } catch { return null; }
+}
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -150,9 +173,12 @@ export async function POST(request: Request) {
     url.searchParams.set("q", query);
     url.searchParams.set("limit", "12");
 
+    const accessToken = await getMercadoLivreAccessToken();
+    const apiHeaders: Record<string, string> = { Accept: "application/json" };
+    if (accessToken) apiHeaders.Authorization = "Bearer " + accessToken;
     const response = await fetch(url, {
-      headers: { Accept: "application/json" },
-      next: { revalidate: 300 },
+      headers: apiHeaders,
+      next: { revalidate: accessToken ? 0 : 300 },
     });
 
     let products: any[] = [];
