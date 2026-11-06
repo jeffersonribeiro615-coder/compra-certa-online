@@ -3,9 +3,9 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
-function returnToSite(status: string) {
+function returnToSite(origin: string, status: string) {
   const response = NextResponse.redirect(
-    new URL(`/?mercadolivre=${encodeURIComponent(status)}`, "https://compra-certa-online.netlify.app")
+    new URL(`/?mercadolivre=${encodeURIComponent(status)}`, origin)
   );
   response.cookies.delete("ml_oauth_state");
   return response;
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const expectedState = request.cookies.get("ml_oauth_state")?.value;
 
   if (!code || !receivedState || !expectedState || receivedState !== expectedState) {
-    return returnToSite("erro_validacao");
+    return returnToSite(request.nextUrl.origin, "erro_validacao");
   }
 
   const clientId = process.env.MERCADOLIVRE_CLIENT_ID;
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!clientId || !clientSecret || !redirectUri || !supabaseUrl || !serviceRoleKey) {
-    return returnToSite("configuracao_pendente");
+    return returnToSite(request.nextUrl.origin, "configuracao_pendente");
   }
 
   try {
@@ -46,11 +46,11 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
 
-    if (!tokenResponse.ok) return returnToSite("erro_token");
+    if (!tokenResponse.ok) return returnToSite(request.nextUrl.origin, "erro_token");
 
     const token = await tokenResponse.json();
     if (!token.access_token || !token.refresh_token) {
-      return returnToSite("erro_token");
+      return returnToSite(request.nextUrl.origin, "erro_token");
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -69,9 +69,9 @@ export async function GET(request: NextRequest) {
       { onConflict: "id" }
     );
 
-    if (error) return returnToSite("erro_armazenamento");
-    return returnToSite("conectado");
+    if (error) return returnToSite(request.nextUrl.origin, "erro_armazenamento");
+    return returnToSite(request.nextUrl.origin, "conectado");
   } catch {
-    return returnToSite("erro_conexao");
+    return returnToSite(request.nextUrl.origin, "erro_conexao");
   }
 }
