@@ -11,6 +11,36 @@ type MercadoLivreItem = {
   category_id?: string;
 };
 
+function inferCategory(title: string) {
+  const name = title.toLowerCase();
+  if (/furadeira|parafusadeira|ferramenta|serra/.test(name)) return "Ferramentas";
+  if (/fone|celular|câmera|camera|smartwatch|eletrônico|bluetooth/.test(name)) return "Eletrônicos";
+  if (/cozinha|panela|cafeteira|liquidificador|air fryer/.test(name)) return "Casa e Cozinha";
+  if (/roupa|camisa|calça|vestido|tênis|sapato/.test(name)) return "Moda";
+  if (/brinquedo|boneca|carrinho/.test(name)) return "Brinquedos";
+  if (/maquiagem|perfume|beleza|cosmético/.test(name)) return "Beleza";
+  return "Outros";
+}
+
+async function getCategoryNames(items: MercadoLivreItem[]) {
+  const ids = Array.from(new Set(items.map((item) => item.category_id).filter(Boolean))) as string[];
+  const entries = await Promise.all(ids.map(async (id) => {
+    try {
+      const response = await fetch(`https://api.mercadolibre.com/categories/${id}`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(5000),
+        cache: "force-cache",
+      });
+      if (!response.ok) return [id, ""] as const;
+      const category = await response.json();
+      return [id, String(category.name || "")] as const;
+    } catch {
+      return [id, ""] as const;
+    }
+  }));
+  return new Map(entries);
+}
+
 function collectProducts(value: any, output: any[] = []) {
   if (!value || typeof value !== "object") return output;
 
@@ -89,7 +119,7 @@ function extractHtmlCards(html: string) {
         id: productUrl,
         title: cleanTitle,
         price: price / 100,
-        category: "Outros",
+        category: inferCategory(cleanTitle),
         image_url: image.replace(/^http:/, "https:"),
         product_url: productUrl,
         affiliate_url: "",
@@ -185,19 +215,19 @@ export async function POST(request: Request) {
 
     if (response.ok) {
       const data = await response.json();
-      products = (data.results || [])
-      .filter((item: MercadoLivreItem) =>
+      const results = (data.results || []).filter((item: MercadoLivreItem) =>
         item.id &&
         item.title &&
         item.permalink &&
         Number.isFinite(Number(item.price)) &&
         item.currency_id === "BRL"
-      )
-      .map((item: MercadoLivreItem) => ({
+      );
+      const categoryNames = await getCategoryNames(results);
+      products = results.map((item: MercadoLivreItem) => ({
         id: item.id,
         title: item.title,
         price: Number(item.price),
-        category: "Outros",
+        category: (item.category_id && categoryNames.get(item.category_id)) || inferCategory(item.title),
         image_url: item.thumbnail
           ? item.thumbnail.replace(/^http:/, "https:")
           : "",
