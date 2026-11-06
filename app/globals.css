@@ -650,3 +650,125 @@ footer small {
 @media (max-width: 650px) {
   .installHelp { margin: 12px; }
 }
+
+
+/* NOVA VITRINE COMPRA CERTA */
+.hero {
+  max-width: 1160px;
+  min-height: 310px;
+  margin: 26px auto 20px;
+  padding: 42px 54px;
+  background: linear-gradient(115deg, #172033 0%, #263f67 62%, #365d88 100%);
+}
+.heroCopy { position: relative; z-index: 2; max-width: 610px; }
+.heroTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 13px;
+  border: 1px solid #ffffff35;
+  border-radius: 30px;
+  color: #ffd19e;
+  background: #ffffff10;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.hero h1 { max-width: 570px; font-size: clamp(34px, 5vw, 52px); letter-spacing: -1.5px; }
+.hero p { max-width: 470px; }
+.heroCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 24px;
+  padding: 13px 20px;
+  border: 0;
+  border-radius: 10px;
+  background: #f28c28;
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 7px 18px #0003;
+}
+.heroCta span { font-size: 20px; line-height: 14px; }
+.heroArt { position: relative; width: 300px; height: 245px; flex: 0 0 300px; }
+.artCircle {
+  position: absolute; width: 218px; height: 218px; border-radius: 50%;
+  background: linear-gradient(145deg, #ffb45e, #f28c28); right: 28px; top: 10px;
+  box-shadow: 0 15px 40px #07152b55;
+}
+.artBag {
+  position: absolute; width: 126px; height: 132px; right: 73px; top: 66px;
+  border-radius: 18px 18px 24px 24px; background: #fff;
+  transform: rotate(-7deg); box-shadow: 0 16px 28px #15233c45;
+  display: grid; place-items: center; color: #f28c28; font-size: 28px; font-weight: 900;
+}
+.artBag:before {
+  content: ""; position: absolute; width: 48px; height: 32px; top: -22px;
+  border: 8px solid #fff; border-bottom: 0; border-radius: 30px 30px 0 0;
+}
+.artBag i { position: absolute; width: 100%; height: 13px; bottom: 0; background: #f28c28; border-radius: 0 0 20px 20px; }
+.artBox {
+  position: absolute; width: 66px; height: 62px; right: 18px; bottom: 16px;
+  border-radius: 12px; background: #f7c66d; color: #6e4317; display: grid; place-items: center;
+  font-size: 27px; transform: rotate(9deg); box-shadow: 0 10px 20px #14233d40;
+}
+.artCard {
+  position: absolute; width: 68px; height: 88px; left: 15px; top: 35px;
+  border-radius: 12px; background: #fff; color: #f28c28; display: grid; place-items: center;
+  font-size: 34px; font-weight: 900; transform: rotate(-13deg); box-shadow: 0 10px 24px #14233d40;
+}
+.artCoin {
+  position: absolute; left: 12px; bottom: 18px; width: 52px; height: 52px; border-radius: 50%;
+  background: #f7c66d; color: #674313; display: grid; place-items: center; font-weight: 900;
+  border: 5px solid #ffe2a6; box-shadow: 0 8px 18px #14233d40;
+}
+.artSpark { position: absolute; color: #ffe0a9; font-size: 32px; z-index: 2; }
+.sparkOne { right: 10px; top: 8px; }
+.sparkTwo { left: 74px; bottom: 0; }
+.benefits {
+  max-width: 1160px; margin: 0 auto 36px; padding: 17px 24px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+  background: #fff; border: 1px solid var(--line); border-radius: 15px;
+  box-shadow: 0 5px 18px #17203308;
+}
+.benefits > div { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.benefits > div > span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; background: #fff3e5; font-size: 21px; }
+.benefits p { display: grid; gap: 3px; margin: 0; }
+.benefits b { font-size: 13px; }
+.benefits small { color: var(--muted); font-size: 11px; }
+.sectionHeading { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 16px; }
+.sectionHeading h2 { margin: 4px 0 0; font-size: 25px; }
+.eyebrow { color: #d87519; font-size: 10px; font-weight: 900; letter-spacing: 1.5px; }
+.headingNote { color: var(--muted); font-size: 12px; }
+.chip { gap: 7px; }
+.chipIcon { font-size: 16px; }
+.categoryTitle { display: flex; align-items: center; gap: 10px; font-size: 20px !important; }
+.categoryTitle span { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: #fff1e2; font-size: 18px; }
+.photo { position: relative; background: linear-gradient(180deg, #fff, #fafbfc); }
+.offerBadge {
+  position: absolute; z-index: 1; top: 10px; left: 10px; padding: 5px 8px;
+  border-radius: 6px; background: #e94d3d; color: white; font-size: 9px; font-weight: 900;
+  letter-spacing: .5px;
+}
+.product { box-shadow: 0 3px 12px #17203308; }
+.productInfo h3 { font-weight: 600; }
+.price { color: #17834a; }
+.buy { border-radius: 9px; }
+@media (max-width: 900px) {
+  .hero { margin: 20px 16px; padding: 34px; }
+  .benefits { margin: 0 16px 28px; }
+}
+@media (max-width: 650px) {
+  .hero { min-height: 250px; padding: 25px 21px; }
+  .hero h1 { font-size: 30px; max-width: 330px; }
+  .hero p { max-width: 290px; font-size: 13px; }
+  .heroArt { position: absolute; width: 150px; height: 150px; right: -15px; bottom: 4px; opacity: .95; transform: scale(.68); transform-origin: bottom right; }
+  .heroCopy { max-width: 100%; }
+  .heroCta { margin-top: 17px; padding: 11px 15px; font-size: 13px; }
+  .benefits { margin: 0 12px 25px; padding: 13px 9px; gap: 6px; }
+  .benefits > div { flex-direction: column; text-align: center; gap: 5px; }
+  .benefits > div > span { width: 34px; height: 34px; font-size: 17px; }
+  .benefits b { font-size: 10px; }
+  .benefits small { font-size: 9px; }
+  .sectionHeading h2 { font-size: 21px; }
+  .headingNote { display: none; }
+}
