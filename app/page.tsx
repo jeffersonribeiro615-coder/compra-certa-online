@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Product = {
-  id: number;
+  id: string;
   title: string;
   price: number;
   category: string;
@@ -13,8 +13,6 @@ type Product = {
   description: string | null;
   is_active: boolean;
 };
-
-const ADMIN_ID = "3d29a2cd-9685-4028-82b6-fbe423568f34";
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -55,8 +53,20 @@ export default function Home() {
     }
   }
 
-  function checkAdmin(current: any) {
-    setIsAdmin(current?.user?.id === ADMIN_ID);
+  async function checkAdmin(current: any) {
+    const userId = current?.user?.id;
+    if (!userId) {
+      setIsAdmin(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    setIsAdmin(!error && Boolean(data));
   }
 
   useEffect(() => {
@@ -64,13 +74,13 @@ export default function Home() {
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      checkAdmin(data.session);
+      await checkAdmin(data.session);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, current) => {
         setSession(current);
-        checkAdmin(current);
+        void checkAdmin(current);
       }
     );
 
