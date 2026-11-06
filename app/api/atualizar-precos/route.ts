@@ -101,7 +101,7 @@ export async function GET(request: Request) {
       .from("products")
       .select("id, affiliate_url, price")
       .eq("is_active", true)
-      .like("affiliate_url", "%mercadolivre%")
+      .or("affiliate_url.ilike.%mercadolivre%,affiliate_url.ilike.%mercadolibre%,affiliate_url.ilike.%meli.la%")
       .limit(50);
 
     if (error) {
