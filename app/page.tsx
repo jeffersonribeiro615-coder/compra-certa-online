@@ -117,6 +117,17 @@ export default function Home() {
     }))
     .filter((group) => group.items.length > 0);
 
+  function categoryIcon(value: string) {
+    const name = value.toLowerCase();
+    if (name.includes("eletr") || name.includes("fone") || name.includes("cel")) return "🎧";
+    if (name.includes("casa") || name.includes("cozinha") || name.includes("util")) return "🏠";
+    if (name.includes("beleza") || name.includes("maqui")) return "✨";
+    if (name.includes("moda") || name.includes("roup") || name.includes("calç")) return "👟";
+    if (name.includes("ferr")) return "🛠️";
+    if (name.includes("brinqu")) return "🧸";
+    return "🛍️";
+  }
+
   function categoryId(value: string) {
     return (
       "categoria-" +
@@ -381,18 +392,36 @@ export default function Home() {
       )}
 
       <section className="hero">
-        <div>
-          <small>ESCOLHAS INTELIGENTES</small>
-          <h1>Boas ofertas para comprar melhor.</h1>
-          <p>
-            Produtos selecionados do Mercado Livre e da Shopee em um só lugar.
-          </p>
+        <div className="heroCopy">
+          <span className="heroTag">⭐ OFERTAS QUE VALEM A PENA</span>
+          <h1>Seu próximo achado está aqui.</h1>
+          <p>Compare, descubra e aproveite produtos selecionados do Mercado Livre e da Shopee.</p>
+          <button className="heroCta" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
+            Explorar ofertas <span>→</span>
+          </button>
         </div>
-        <div className="bag">🛍️</div>
+        <div className="heroArt" aria-hidden="true">
+          <div className="artCircle"></div>
+          <div className="artSpark sparkOne">✦</div>
+          <div className="artSpark sparkTwo">✧</div>
+          <div className="artCard cardBack">%</div>
+          <div className="artBag"><span>CC</span><i></i></div>
+          <div className="artBox"><b>✓</b></div>
+          <div className="artCoin">R$</div>
+        </div>
+      </section>
+
+      <section className="benefits" aria-label="Vantagens">
+        <div><span>🔎</span><p><b>Escolha fácil</b><small>Encontre o que procura</small></p></div>
+        <div><span>🏷️</span><p><b>Boas ofertas</b><small>Produtos em destaque</small></p></div>
+        <div><span>🔗</span><p><b>Lojas parceiras</b><small>Compra no site da loja</small></p></div>
       </section>
 
       <section className="section" id="catalogo">
-        <h2>Explore por categoria</h2>
+        <div className="sectionHeading">
+          <div><span className="eyebrow">NAVEGUE E DESCUBRA</span><h2>Compre por categoria</h2></div>
+          <span className="headingNote">Encontre seu próximo achado</span>
+        </div>
 
         <div className="chips">
           <button
@@ -416,7 +445,7 @@ export default function Home() {
                 })
               }
             >
-              {c}
+              <span className="chipIcon">{categoryIcon(c)}</span>{c}
             </button>
           ))}
         </div>
@@ -429,12 +458,13 @@ export default function Home() {
             id={categoryId(group.name)}
             key={group.name}
           >
-            <h2>{group.name}</h2>
+            <h2 className="categoryTitle"><span>{categoryIcon(group.name)}</span>{group.name}</h2>
 
             <div className="grid">
               {group.items.map((p) => (
                 <article className="product" key={p.id}>
                   <div className="photo">
+                    <span className="offerBadge">OFERTA</span>
                     {p.image_url ? (
                       <img src={p.image_url} alt={p.title} />
                     ) : (
