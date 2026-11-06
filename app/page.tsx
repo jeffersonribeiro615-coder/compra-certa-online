@@ -40,6 +40,7 @@ export default function Home() {
   const [searching, setSearching] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [installHelp, setInstallHelp] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
 
   async function loadProducts() {
     const { data, error } = await supabase
@@ -72,6 +73,7 @@ export default function Home() {
   }
 
   useEffect(() => {
+    setAdminMode(new URLSearchParams(window.location.search).get("admin") === "1");
     loadProducts();
 
     supabase.auth.getSession().then(async ({ data }) => {
@@ -363,9 +365,11 @@ export default function Home() {
           <button onClick={() => {}}>Buscar</button>
         </div>
 
-        <button className="adminButton" onClick={() => setAdminOpen(true)}>
-          ⚙ Painel
-        </button>
+        {(isAdmin || adminMode) && (
+          <button className="adminButton" onClick={() => setAdminOpen(true)}>
+            ⚙ Painel
+          </button>
+        )}
       </header>
 
       {installHelp && (
