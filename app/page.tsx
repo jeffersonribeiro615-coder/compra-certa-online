@@ -262,6 +262,10 @@ export default function Home() {
     }
   }
 
+  function connectMercadoLivre() {
+    window.location.href = "/api/mercadolivre/autorizar";
+  }
+
   async function searchMercadoLivre() {
     const query = searchQuery.trim();
     if (query.length < 2) {
@@ -602,6 +606,11 @@ export default function Home() {
                 </form>
 
                 <div className="form">
+                  <h3>Conectar Mercado Livre</h3>
+                  <p>Autorize sua conta para permitir que o site acesse a integração.</p>
+                  <button className="secondary" type="button" onClick={connectMercadoLivre}>
+                    Conectar minha conta do Mercado Livre
+                  </button>
                   <h3>Robô de busca do Mercado Livre</h3>
                   <p>Pesquise produtos no catálogo público e escolha um para preencher o cadastro automaticamente.</p>
                   <input
