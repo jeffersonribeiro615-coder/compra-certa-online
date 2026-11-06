@@ -38,6 +38,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [installHelp, setInstallHelp] = useState(false);
 
   async function loadProducts() {
     const { data, error } = await supabase
@@ -365,6 +367,14 @@ export default function Home() {
           ⚙ Painel
         </button>
       </header>
+
+      {installHelp && (
+        <div className="installHelp" role="status">
+          <b>Instale o Compra Certa Online:</b> no Chrome, toque no menu ⋮ e escolha
+          “Instalar aplicativo” ou “Adicionar à tela inicial”.
+          <button onClick={() => setInstallHelp(false)} aria-label="Fechar">✕</button>
+        </div>
+      )}
 
       <section className="hero">
         <div>
